@@ -5,12 +5,11 @@ import { db } from './firebase.js';
 
 dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 8080; // 🔧 Obligatoire sur Railway
 
 app.use(cors());
 app.use(express.json());
 
-// ✅ Route réelle pour stocker une clé dans Firestore
 app.post('/api/cle', async (req, res) => {
   const { userId, apiKey } = req.body;
 
@@ -33,7 +32,6 @@ app.post('/api/cle', async (req, res) => {
   }
 });
 
-// 🔁 Route pour récupérer les clés d’un utilisateur
 app.get('/api/cle', async (req, res) => {
   const { userId } = req.query;
 
@@ -55,4 +53,8 @@ app.get('/api/cle', async (req, res) => {
     console.error('Erreur Firestore (GET):', error);
     return res.status(500).json({ message: 'Erreur lors de la récupération' });
   }
+});
+
+app.listen(PORT, () => {
+  console.log(`✅ Backend AlphaNest en ligne sur le port ${PORT}`);
 });
