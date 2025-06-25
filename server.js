@@ -58,3 +58,6 @@ app.get('/api/cle', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Backend AlphaNest en ligne sur le port ${PORT}`);
 });
+app.get('/', (req, res) => {
+  res.send('✅ AlphaNest backend est en ligne !');
+});
