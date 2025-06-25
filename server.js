@@ -5,7 +5,7 @@ import { db } from './firebase.js';
 
 dotenv.config();
 const app = express();
-const PORT = 8080; // 🔧 Obligatoire sur Railway
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
