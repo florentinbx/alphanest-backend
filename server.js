@@ -32,11 +32,26 @@ app.post('/api/cle', async (req, res) => {
   }
 });
 
-// Route test GET
-app.get('/', (req, res) => {
-  res.send('🚀 Backend AlphaNest sécurisé opérationnel !');
-});
+// 🔁 Route pour récupérer les clés d’un utilisateur
+app.get('/api/cle', async (req, res) => {
+  const { userId } = req.query;
 
-app.listen(PORT, () => {
-  console.log(`🚀 Backend AlphaNest en ligne sur le port ${PORT}`);
+  if (!userId) {
+    return res.status(400).json({ message: 'Paramètre userId requis' });
+  }
+
+  try {
+    const snapshot = await db
+      .collection('cles_api')
+      .where('userId', '==', userId)
+      .orderBy('date', 'desc')
+      .get();
+
+    const cles = snapshot.docs.map(doc => doc.data());
+
+    return res.status(200).json({ userId, cles });
+  } catch (error) {
+    console.error('Erreur Firestore (GET):', error);
+    return res.status(500).json({ message: 'Erreur lors de la récupération' });
+  }
 });
