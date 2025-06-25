@@ -4,7 +4,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-console.log('Clé Firebase (brut depuis process.env):', process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+// ✅ Ne pas afficher la clé en production
+if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  throw new Error("❌ Variable FIREBASE_SERVICE_ACCOUNT_KEY manquante.");
+}
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 

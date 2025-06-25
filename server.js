@@ -19,16 +19,17 @@ app.post('/api/cle', async (req, res) => {
   }
 
   try {
-    await db.collection('cles_api').add({
+    const docRef = await db.collection('cles_api').add({
       userId,
       apiKey,
       date: new Date()
     });
 
-    return res.status(200).json({ message: 'Clé enregistrée avec succès 🔐' });
+    console.log('✅ Clé enregistrée dans Firestore avec ID :', docRef.id);
+    return res.status(200).json({ message: 'Clé enregistrée avec succès 🔐', id: docRef.id });
   } catch (error) {
-    console.error('Erreur Firestore:', error);
-    return res.status(500).json({ message: 'Erreur lors de l’enregistrement' });
+    console.error('❌ Erreur Firestore:', error);
+    return res.status(500).json({ message: 'Erreur Firestore', error: error.message });
   }
 });
 
