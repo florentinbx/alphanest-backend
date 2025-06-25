@@ -1,13 +1,15 @@
-import { initializeApp, applicationDefault, cert } from 'firebase-admin/app';
+import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { readFileSync } from 'fs';
+import dotenv from 'dotenv';
 
-// Utilisation de variables d’environnement Railway
+dotenv.config();
+
+console.log('Clé Firebase (brut depuis process.env):', process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 
-initializeApp({
+const app = initializeApp({
   credential: cert(serviceAccount)
 });
 
-const db = getFirestore();
-export { db };
+export const db = getFirestore(app);
