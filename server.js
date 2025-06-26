@@ -98,6 +98,23 @@ app.delete('/api/cle/:id', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Backend AlphaNest en ligne sur le port ${PORT}`);
 });
+// ✅ Vérifier si une clé API est valide (utilisée côté frontend)
+app.post("/api/cle/verification", async (req, res) => {
+  const { apiKey } = req.body;
+  if (!apiKey) return res.status(400).json({ message: "Clé non fournie" });
+
+  try {
+    const clesSnapshot = await db.collection("cles").where("apiKey", "==", apiKey).get();
+    if (clesSnapshot.empty) {
+      return res.status(403).json({ message: "Clé invalide ❌" });
+    }
+
+    return res.json({ message: "Clé valide ✅" });
+  } catch (err) {
+    console.error("Erreur vérification clé :", err);
+    res.status(500).json({ message: "Erreur serveur lors de la vérification" });
+  }
+});
 // 🔁 Mettre à jour une clé API par ID
 app.put('/api/cle/:id', async (req, res) => {
   const { id } = req.params;
