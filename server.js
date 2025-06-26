@@ -10,8 +10,10 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Middleware pour vérifier la clé secrète
+// ✅ Middleware global avec exception pour la vérification
 app.use((req, res, next) => {
+  if (req.path === '/api/cle/verification') return next(); // ❗ Exception autorisée
+
   const apiKeyHeader = req.headers['x-api-key'];
   console.log("🔐 Clé envoyée :", apiKeyHeader);
   console.log("🔐 Clé attendue :", process.env.API_SECRET_KEY);
@@ -23,6 +25,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// ✅ Créer une nouvelle clé
 app.post('/api/cle', async (req, res) => {
   const { userId, apiKey } = req.body;
 
@@ -45,6 +48,7 @@ app.post('/api/cle', async (req, res) => {
   }
 });
 
+// ✅ Récupérer les clés par userId
 app.get('/api/cle', async (req, res) => {
   const { userId } = req.query;
 
@@ -68,18 +72,9 @@ app.get('/api/cle', async (req, res) => {
   }
 });
 
-app.get('/', (req, res) => {
-  res.send('✅ AlphaNest backend est en ligne !');
-});
-// 🔒 Supprimer une clé API par ID
+// ✅ Supprimer une clé
 app.delete('/api/cle/:id', async (req, res) => {
   const { id } = req.params;
-  const apiKeyHeader = req.headers['x-api-key'];
-
-  // Vérification de la clé secrète
-  if (!apiKeyHeader || apiKeyHeader !== process.env.API_SECRET_KEY) {
-    return res.status(403).json({ message: 'Clé secrète invalide ❌' });
-  }
 
   if (!id) {
     return res.status(400).json({ message: 'Paramètre ID manquant' });
@@ -95,10 +90,7 @@ app.delete('/api/cle/:id', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ Backend AlphaNest en ligne sur le port ${PORT}`);
-});
-// ✅ Vérifier si une clé API est valide (utilisée côté frontend)
+// ✅ Vérifier si une clé API est valide (publique, utilisée par le frontend)
 app.post("/api/cle/verification", async (req, res) => {
   const { apiKey } = req.body;
   if (!apiKey) return res.status(400).json({ message: "Clé non fournie" });
@@ -115,15 +107,11 @@ app.post("/api/cle/verification", async (req, res) => {
     res.status(500).json({ message: "Erreur serveur lors de la vérification" });
   }
 });
-// 🔁 Mettre à jour une clé API par ID
+
+// ✅ Modifier une clé
 app.put('/api/cle/:id', async (req, res) => {
   const { id } = req.params;
   const { newApiKey } = req.body;
-  const apiKeyHeader = req.headers['x-api-key'];
-
-  if (!apiKeyHeader || apiKeyHeader !== process.env.API_SECRET_KEY) {
-    return res.status(403).json({ message: 'Clé secrète invalide ❌' });
-  }
 
   if (!id || !newApiKey) {
     return res.status(400).json({ message: 'ID ou nouvelle clé manquants' });
@@ -141,4 +129,13 @@ app.put('/api/cle/:id', async (req, res) => {
     console.error('❌ Erreur lors de la mise à jour :', error);
     return res.status(500).json({ message: 'Erreur Firestore lors de la mise à jour', error: error.message });
   }
+});
+
+// ✅ Route test
+app.get('/', (req, res) => {
+  res.send('✅ AlphaNest backend est en ligne !');
+});
+
+app.listen(PORT, () => {
+  console.log(`✅ Backend AlphaNest en ligne sur le port ${PORT}`);
 });
