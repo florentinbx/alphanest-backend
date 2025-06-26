@@ -98,3 +98,30 @@ app.delete('/api/cle/:id', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Backend AlphaNest en ligne sur le port ${PORT}`);
 });
+// 🔁 Mettre à jour une clé API par ID
+app.put('/api/cle/:id', async (req, res) => {
+  const { id } = req.params;
+  const { newApiKey } = req.body;
+  const apiKeyHeader = req.headers['x-api-key'];
+
+  if (!apiKeyHeader || apiKeyHeader !== process.env.API_SECRET_KEY) {
+    return res.status(403).json({ message: 'Clé secrète invalide ❌' });
+  }
+
+  if (!id || !newApiKey) {
+    return res.status(400).json({ message: 'ID ou nouvelle clé manquants' });
+  }
+
+  try {
+    await db.collection('cles_api').doc(id).update({
+      apiKey: newApiKey,
+      date: new Date()
+    });
+
+    console.log(`🔁 Clé avec ID ${id} mise à jour`);
+    return res.status(200).json({ message: 'Clé mise à jour avec succès 🔁', id });
+  } catch (error) {
+    console.error('❌ Erreur lors de la mise à jour :', error);
+    return res.status(500).json({ message: 'Erreur Firestore lors de la mise à jour', error: error.message });
+  }
+});
