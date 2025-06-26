@@ -13,12 +13,14 @@ app.use(express.json());
 // Middleware pour vérifier la clé secrète
 app.use((req, res, next) => {
   const apiKeyHeader = req.headers['x-api-key'];
+  console.log("🔐 Clé envoyée :", apiKeyHeader);
+  console.log("🔐 Clé attendue :", process.env.API_SECRET_KEY);
 
   if (!apiKeyHeader || apiKeyHeader !== process.env.API_SECRET_KEY) {
     return res.status(403).json({ message: 'Clé secrète invalide ❌' });
   }
 
-  next(); // sinon on continue
+  next();
 });
 
 app.post('/api/cle', async (req, res) => {
