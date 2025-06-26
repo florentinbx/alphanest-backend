@@ -104,7 +104,7 @@ app.post("/api/cle/verification", async (req, res) => {
   if (!apiKey) return res.status(400).json({ message: "Clé non fournie" });
 
   try {
-    const clesSnapshot = await db.collection("cles").where("apiKey", "==", apiKey).get();
+    const clesSnapshot = await db.collection("cles_api").where("apiKey", "==", apiKey).get();
     if (clesSnapshot.empty) {
       return res.status(403).json({ message: "Clé invalide ❌" });
     }
