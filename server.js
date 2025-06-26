@@ -10,14 +10,11 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// ✅ Middleware global avec exception pour la vérification
+// Middleware pour vérifier la clé secrète sauf pour la vérification publique
 app.use((req, res, next) => {
-  if (req.path === '/api/cle/verification') return next(); // ❗ Exception autorisée
+  if (req.path === '/api/cle/verification') return next(); // Exception ici ✅
 
   const apiKeyHeader = req.headers['x-api-key'];
-  console.log("🔐 Clé envoyée :", apiKeyHeader);
-  console.log("🔐 Clé attendue :", process.env.API_SECRET_KEY);
-
   if (!apiKeyHeader || apiKeyHeader !== process.env.API_SECRET_KEY) {
     return res.status(403).json({ message: 'Clé secrète invalide ❌' });
   }
