@@ -3,7 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { db } from './firebase.js';
 import binanceRoutes from "./routes/binance.js";
-app.use("/api/binance", binanceRoutes);
 
 dotenv.config();
 const app = express();
@@ -11,6 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+app.use("/api/binance", binanceRoutes);
 
 // Middleware pour vérifier la clé secrète sauf pour la vérification publique
 app.use((req, res, next) => {
@@ -22,29 +22,6 @@ app.use((req, res, next) => {
   }
 
   next();
-});
-
-// ✅ Créer une nouvelle clé
-app.post('/api/cle', async (req, res) => {
-  const { userId, apiKey } = req.body;
-
-  if (!userId || !apiKey) {
-    return res.status(400).json({ message: 'Champs manquants' });
-  }
-
-  try {
-    const docRef = await db.collection('cles_api').add({
-      userId,
-      apiKey,
-      date: new Date()
-    });
-
-    console.log('✅ Clé enregistrée dans Firestore avec ID :', docRef.id);
-    return res.status(200).json({ message: 'Clé enregistrée avec succès 🔐', id: docRef.id });
-  } catch (error) {
-    console.error('❌ Erreur Firestore:', error);
-    return res.status(500).json({ message: 'Erreur Firestore', error: error.message });
-  }
 });
 
 // ✅ Récupérer les clés par userId
@@ -123,7 +100,6 @@ function chiffrerTexte(texte) {
   };
 }
 
-app.post("/api/ajouter-cle-binance", async (req, res) => {
   const { userId, apiKey, apiSecret } = req.body;
   const adminKey = req.headers["x-api-key"];
 
