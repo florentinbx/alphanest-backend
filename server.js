@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { db } from './firebase.js';
+import binanceRoutes from "./routes/binance.js";
+app.use("/api/binance", binanceRoutes);
 
 dotenv.config();
 const app = express();
