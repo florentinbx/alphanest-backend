@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { db } from './firebase.js';
 import binanceRoutes from "./routes/binance.js";
+import crypto from "crypto";
 
 dotenv.config();
 const app = express();
@@ -83,7 +84,6 @@ app.post("/api/cle/verification", async (req, res) => {
     res.status(500).json({ message: "Erreur serveur lors de la vérification" });
   }
 });
-const crypto = require("crypto");
 
 function chiffrerTexte(texte) {
   const algorithm = "aes-256-cbc";
