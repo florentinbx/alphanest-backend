@@ -8,7 +8,8 @@ function chiffrerTexte(texte) {
   const algorithm = "aes-256-cbc";
   const key = Buffer.from(process.env.CRYPT_KEY, "hex");
   const iv = crypto.randomBytes(16);
-
+  
+  console.log("🔑 CRYPT_KEY utilisée :", process.env.CRYPT_KEY);
   const cipher = crypto.createCipheriv(algorithm, key, iv);
   let chiffré = cipher.update(texte, "utf8", "hex");
   chiffré += cipher.final("hex");
