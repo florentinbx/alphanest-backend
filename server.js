@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 import { db } from './firebase.js';
 import binanceRoutes from "./routes/binance.js";
 import crypto from "crypto";
-
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -99,33 +98,6 @@ function chiffrerTexte(texte) {
     contenu: chiffré,
   };
 }
-
-  app.post("/api/ajouter-cle-binance", async (req, res) => {
-    const { userId, apiKey, apiSecret } = req.body;
-    const adminKey = req.headers["x-api-key"];
-
-    if (adminKey !== process.env.API_SECRET_KEY) {
-      return res.status(403).json({ message: "Clé secrète invalide ❌" });
-    }
-
-    if (!userId || !apiKey || !apiSecret) {
-      return res.status(400).json({ message: "Champs manquants ❌" });
-    }
-
-    try {
-      const cleChiffree = {
-        apiKey: chiffrerTexte(apiKey),
-        apiSecret: chiffrerTexte(apiSecret),
-        date: new Date(),
-      };
-
-      await db.collection("cles_binance").doc(userId).set(cleChiffree);
-      res.json({ message: "✅ Clé Binance enregistrée avec succès !" });
-    } catch (err) {
-      console.error("Erreur Firestore :", err);
-      res.status(500).json({ message: "❌ Erreur lors de l'enregistrement" });
-    }
-  });
 
 // ✅ Modifier une clé
 app.put('/api/cle/:id', async (req, res) => {
