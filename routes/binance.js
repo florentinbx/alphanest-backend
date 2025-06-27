@@ -149,15 +149,14 @@ router.post('/acheter', async (req, res) => {
     const queryString = `symbol=BTCUSDT&side=BUY&type=MARKET&quoteOrderQty=${montant}&timestamp=${timestamp}`;
     const signature = crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
 
-    const response = await axios.post(
-      `https://api.binance.com/api/v3/order?${queryString}&signature=${signature}`,
-      {},
-      {
-        headers: {
-          'X-MBX-APIKEY': apiKey
-        }
-      }
-    );
+    const url = `https://api.binance.com/api/v3/order?${queryString}&signature=${signature}`;
+    const headers = { 'X-MBX-APIKEY': apiKey };
+
+    const response = await axios({
+      method: 'POST',
+      url,
+      headers
+    });
 
     return res.json({ message: "✅ Achat exécuté avec succès", data: response.data });
 
