@@ -82,6 +82,8 @@ router.post('/acheter', async (req, res) => {
     const data = doc.data();
     const apiKey = dechiffrerTexte(data.apiKey);
     const apiSecret = dechiffrerTexte(data.apiSecret);
+    console.log("🧪 Clé API déchiffrée :", apiKey);
+    console.log("🧪 Clé secrète déchiffrée :", apiSecret);
 
     const timestamp = Date.now();
     const queryString = `symbol=BTCUSDT&side=BUY&type=MARKET&quoteOrderQty=${montant}&timestamp=${timestamp}`;
