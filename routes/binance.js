@@ -91,7 +91,8 @@ async function obtenirSoldeUSDT(apiKey, apiSecret) {
 
 // ✅ ACHAT RÉEL
 router.post('/acheter', async (req, res) => {
-  const { userId, montant } = req.body;
+  const { userId, montant, actif = "BTC" } = req.body;
+  const symbol = actif.toUpperCase() + "USDT";
   const adminKey = req.headers["x-api-key"];
 
   if (adminKey !== process.env.API_SECRET_KEY) {
@@ -122,9 +123,10 @@ router.post('/acheter', async (req, res) => {
     if (soldeUSDT < montant) {
       return res.status(400).json({ message: `❌ Solde insuffisant : ${soldeUSDT} USDT disponibles` });
     }
-
+    
     const timestamp = Date.now();
-    const queryString = `symbol=BTCUSDT&side=BUY&type=MARKET&quoteOrderQty=${montant}&timestamp=${timestamp}`;
+    const symbol = actif.toUpperCase() + "USDT";
+    const queryString = `symbol=${symbol}&side=BUY&type=MARKET&quoteOrderQty=${montant}&timestamp=${timestamp}`;
     const signature = crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
 
     const response = await axios({
@@ -134,7 +136,7 @@ router.post('/acheter', async (req, res) => {
         'X-MBX-APIKEY': apiKey,
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      data: `symbol=BTCUSDT&side=BUY&type=MARKET&quoteOrderQty=${montant}&timestamp=${timestamp}&signature=${signature}`
+      data: `symbol=${symbol}&side=BUY&type=MARKET&quoteOrderQty=${montant}&timestamp=${timestamp}&signature=${signature}`
     });
 
     const trade = response.data;
