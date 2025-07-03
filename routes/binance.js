@@ -202,5 +202,33 @@ router.get('/recuperer-cle/:userId', async (req, res) => {
     return res.status(500).json({ message: "❌ Erreur récupération clé", error: error.message });
   }
 });
+// ✅ ROUTE : solde réel USDT
+router.get('/solde/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const adminKey = req.headers["x-api-key"];
+
+  if (adminKey !== process.env.API_SECRET_KEY) {
+    return res.status(403).json({ message: "Clé secrète invalide ❌" });
+  }
+
+  try {
+    const doc = await db.collection("cles_binance").doc(userId).get();
+    if (!doc.exists) return res.status(404).json({ message: "Aucune clé trouvée ❌" });
+
+    const data = doc.data();
+    const apiKey = dechiffrerTexte(data.apiKey);
+    const apiSecret = dechiffrerTexte(data.apiSecret);
+
+    const soldeUSDT = await obtenirSoldeUSDT(apiKey, apiSecret);
+    if (soldeUSDT === null) {
+      return res.status(500).json({ message: "❌ Erreur récupération solde" });
+    }
+
+    return res.json({ userId, soldeUSDT });
+  } catch (err) {
+    console.error("❌ Erreur route solde :", err);
+    return res.status(500).json({ message: "❌ Erreur interne", error: err.message });
+  }
+});
 
 export default router;
