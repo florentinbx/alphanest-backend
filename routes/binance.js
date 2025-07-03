@@ -62,6 +62,33 @@ router.post('/enregistrer', async (req, res) => {
   }
 });
 
+async function obtenirSoldeUSDT(apiKey, apiSecret) {
+  const timestamp = Date.now();
+  const queryString = `timestamp=${timestamp}`;
+  const signature = crypto
+    .createHmac("sha256", apiSecret)
+    .update(queryString)
+    .digest("hex");
+
+  try {
+    const response = await axios.get(
+      `https://api.binance.com/api/v3/account?${queryString}&signature=${signature}`,
+      {
+        headers: {
+          "X-MBX-APIKEY": apiKey
+        }
+      }
+    );
+
+    const balances = response.data.balances;
+    const usdt = balances.find(b => b.asset === "USDT");
+    return parseFloat(usdt?.free || "0");
+  } catch (err) {
+    console.error("❌ Erreur récupération solde USDT :", err.response?.data || err.message);
+    return null;
+  }
+}
+
 // ✅ ACHAT RÉEL
 router.post('/acheter', async (req, res) => {
   const { userId, montant } = req.body;
@@ -84,6 +111,17 @@ router.post('/acheter', async (req, res) => {
     const apiSecret = dechiffrerTexte(data.apiSecret);
     console.log("🧪 Clé API déchiffrée :", apiKey);
     console.log("🧪 Clé secrète déchiffrée :", apiSecret);
+
+    const soldeUSDT = await obtenirSoldeUSDT(apiKey, apiSecret);
+    console.log("💰 Solde USDT :", soldeUSDT);
+
+    if (soldeUSDT === null) {
+      return res.status(500).json({ message: "❌ Impossible de récupérer le solde" });
+    }
+
+    if (soldeUSDT < montant) {
+      return res.status(400).json({ message: `❌ Solde insuffisant : ${soldeUSDT} USDT disponibles` });
+    }
 
     const timestamp = Date.now();
     const queryString = `symbol=BTCUSDT&side=BUY&type=MARKET&quoteOrderQty=${montant}&timestamp=${timestamp}`;
