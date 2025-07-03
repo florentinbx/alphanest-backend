@@ -12,6 +12,11 @@ app.use(cors());
 app.use(express.json());
 app.use("/api/binance", binanceRoutes);
 
+// ✅ Route test
+app.get('/', (req, res) => {
+  res.send('✅ AlphaNest backend est en ligne !');
+});
+
 // Middleware pour vérifier la clé secrète sauf pour la vérification publique
 app.use((req, res, next) => {
   if (req.path === '/api/cle/verification') return next(); // Exception ici ✅
@@ -120,11 +125,6 @@ app.put('/api/cle/:id', async (req, res) => {
     console.error('❌ Erreur lors de la mise à jour :', error);
     return res.status(500).json({ message: 'Erreur Firestore lors de la mise à jour', error: error.message });
   }
-});
-
-// ✅ Route test
-app.get('/', (req, res) => {
-  res.send('✅ AlphaNest backend est en ligne !');
 });
 
 app.listen(PORT, () => {
