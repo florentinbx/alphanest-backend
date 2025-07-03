@@ -138,4 +138,27 @@ router.get('/historique/:userId', async (req, res) => {
   }
 });
 
+// ✅ ROUTE DEBUG : récupérer les clés binance chiffrées d'un utilisateur
+router.get('/recuperer-cle/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const adminKey = req.headers["x-api-key"];
+
+  if (adminKey !== process.env.API_SECRET_KEY) {
+    return res.status(403).json({ message: "Clé secrète invalide ❌" });
+  }
+
+  try {
+    const doc = await db.collection("cles_binance").doc(userId).get();
+    if (!doc.exists) {
+      return res.status(404).json({ message: "❌ Aucune clé trouvée pour cet utilisateur" });
+    }
+
+    const data = doc.data();
+    return res.json({ message: "✅ Clé récupérée avec succès", data });
+  } catch (error) {
+    console.error("❌ Erreur Firestore :", error);
+    return res.status(500).json({ message: "❌ Erreur récupération clé", error: error.message });
+  }
+});
+
 export default router;
