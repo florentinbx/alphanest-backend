@@ -3,6 +3,19 @@ import { db } from '../firebase.js';
 import crypto from 'crypto';
 import axios from 'axios';
 
+async function enregistrerLog(userId, action, details) {
+  try {
+    await db.collection("logs").add({
+      userId,
+      action,
+      details,
+      timestamp: new Date()
+    });
+  } catch (err) {
+    console.error("❌ Erreur enregistrement log :", err.message);
+  }
+}
+
 const router = express.Router();
 
 // 💡 Fonction utilitaire
@@ -92,7 +105,6 @@ async function obtenirSoldeUSDT(apiKey, apiSecret) {
 // ✅ ACHAT RÉEL
 router.post('/acheter', async (req, res) => {
   const { userId, montant, actif = "BTC" } = req.body;
-  const symbol = actif.toUpperCase() + "USDT";
   const adminKey = req.headers["x-api-key"];
 
   if (adminKey !== process.env.API_SECRET_KEY) {
@@ -149,11 +161,19 @@ router.post('/acheter', async (req, res) => {
       date: new Date(),
       idTransaction: trade.orderId,
     });
-
+    
+    await enregistrerLog(userId, "achat", {
+      actif,
+      montant,
+      reponseBinance: data
+    });
     return res.json({ message: "✅ Achat exécuté avec succès", data: trade });
-
+    
   } catch (err) {
     console.error("❌ Erreur achat Binance :", err.response?.data || err.message);
+    await enregistrerLog(userId, "erreur_achat", {
+      erreur: err.response?.data || err.message
+    });
     return res.status(500).json({ message: "❌ Erreur lors de l'achat", error: err.response?.data || err.message });
   }
 });
@@ -225,11 +245,168 @@ router.get('/solde/:userId', async (req, res) => {
     if (soldeUSDT === null) {
       return res.status(500).json({ message: "❌ Erreur récupération solde" });
     }
-
+     await enregistrerLog(userId, "consultation_solde", { actif });
     return res.json({ userId, soldeUSDT });
+   
   } catch (err) {
     console.error("❌ Erreur route solde :", err);
     return res.status(500).json({ message: "❌ Erreur interne", error: err.message });
+  }
+});
+// ✅ VENTE RÉELLE
+router.post('/vendre', async (req, res) => {
+  const { userId, montant, actif = "BTC" } = req.body;
+  const adminKey = req.headers["x-api-key"];
+
+  if (adminKey !== process.env.API_SECRET_KEY) {
+    return res.status(403).json({ message: "Clé secrète invalide ❌" });
+  }
+
+  if (!userId || !montant) {
+    return res.status(400).json({ message: "Champs manquants ❌" });
+  }
+
+  try {
+    const doc = await db.collection("cles_binance").doc(userId).get();
+    if (!doc.exists) return res.status(404).json({ message: "Aucune clé trouvée ❌" });
+
+    const data = doc.data();
+    const apiKey = dechiffrerTexte(data.apiKey);
+    const apiSecret = dechiffrerTexte(data.apiSecret);
+
+    const timestamp = Date.now();
+    const symbol = actif.toUpperCase() + "USDT";
+
+    const queryString = `symbol=${symbol}&side=SELL&type=MARKET&quoteOrderQty=${montant}&timestamp=${timestamp}`;
+    const signature = crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+
+    const response = await axios({
+      method: 'POST',
+      url: 'https://api.binance.com/api/v3/order',
+      headers: {
+        'X-MBX-APIKEY': apiKey,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      data: `symbol=${symbol}&side=SELL&type=MARKET&quoteOrderQty=${montant}&timestamp=${timestamp}&signature=${signature}`
+    });
+
+    const vente = response.data;
+
+    await db.collection("ventes_reelles").add({
+      userId,
+      montant,
+      actif,
+      prixVente: vente.fills?.[0]?.price || "Inconnu",
+      quantite: vente.executedQty,
+      date: new Date(),
+      idTransaction: vente.orderId,
+    });
+
+    return res.json({ message: "✅ Vente exécutée avec succès", data: vente });
+
+  } catch (err) {
+    console.error("❌ Erreur vente Binance :", err.response?.data || err.message);
+    return res.status(500).json({ message: "❌ Erreur lors de la vente", error: err.response?.data || err.message });
+  }
+});
+// 📜 HISTORIQUE DES VENTES
+router.get("/historique-ventes/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const snapshot = await db.collection("ventes_reelles")
+      .where("userId", "==", userId)
+      .orderBy("date", "desc")
+      .get();
+
+    const ventes = snapshot.docs.map(doc => doc.data());
+    res.json({ ventes });
+
+  } catch (err) {
+    console.error("❌ Erreur historique ventes :", err);
+    res.status(500).json({ message: "Erreur lors de la récupération de l'historique des ventes" });
+  }
+});
+// 🔐 RETRAIT D'USDT
+router.post('/retirer', async (req, res) => {
+  const { userId, adresse, montant, reseau = "TRX" } = req.body;
+  const adminKey = req.headers["x-api-key"];
+
+  if (adminKey !== process.env.API_SECRET_KEY) {
+    return res.status(403).json({ message: "Clé secrète invalide ❌" });
+  }
+
+  if (!userId || !adresse || !montant) {
+    return res.status(400).json({ message: "Champs manquants ❌" });
+  }
+
+  try {
+    const doc = await db.collection("cles_binance").doc(userId).get();
+    if (!doc.exists) return res.status(404).json({ message: "Clé introuvable ❌" });
+
+    const data = doc.data();
+    const apiKey = dechiffrerTexte(data.apiKey);
+    const apiSecret = dechiffrerTexte(data.apiSecret);
+
+    const timestamp = Date.now();
+    const params = `coin=USDT&address=${adresse}&amount=${montant}&network=${reseau}&timestamp=${timestamp}`;
+    const signature = crypto.createHmac('sha256', apiSecret).update(params).digest('hex');
+
+    const response = await axios({
+      method: 'POST',
+      url: 'https://api.binance.com/sapi/v1/capital/withdraw/apply',
+      headers: {
+        'X-MBX-APIKEY': apiKey,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      data: `${params}&signature=${signature}`
+    });
+
+    const retrait = response.data;
+
+    await db.collection("retraits").add({
+      userId,
+      adresse,
+      montant,
+      reseau,
+      date: new Date(),
+      idRetrait: retrait.id || "inconnu",
+      status: retrait.msg || "En attente"
+    });
+    await enregistrerLog(userId, "retrait", {
+      montant,
+      adresse,
+      actif,
+      reponseBinance: data
+    });
+    return res.json({ message: "✅ Retrait demandé avec succès", data: retrait });
+    
+  } catch (err) {
+    console.error("❌ Erreur retrait :", err.response?.data || err.message);
+    res.status(500).json({ message: "❌ Erreur lors du retrait", error: err.response?.data || err.message });
+  }
+});
+// 🔍 HISTORIQUE DES RETRAITS
+router.get('/retraits/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  const adminKey = req.headers["x-api-key"];
+
+  if (adminKey !== process.env.API_SECRET_KEY) {
+    return res.status(403).json({ message: "Clé secrète invalide ❌" });
+  }
+
+  try {
+    const snapshot = await db.collection("retraits")
+      .where("userId", "==", userId)
+      .orderBy("date", "desc")
+      .get();
+
+    const retraits = snapshot.docs.map(doc => doc.data());
+    return res.json({ message: "✅ Historique récupéré", data: retraits });
+
+  } catch (err) {
+    console.error("❌ Erreur récupération retraits :", err);
+    return res.status(500).json({ message: "❌ Erreur récupération retraits", error: err.message });
   }
 });
 

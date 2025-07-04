@@ -4,13 +4,16 @@ import dotenv from 'dotenv';
 import { db } from './firebase.js';
 import binanceRoutes from "./routes/binance.js";
 dotenv.config();
+import usersRouter from './routes/users.js';
+import adminRouter from './routes/admin.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-
+app.use('/api/users', usersRouter);
+app.use('/api/admin', adminRouter);
 // ✅ Route test
 app.get('/', (req, res) => {
   res.send('✅ AlphaNest backend est en ligne !');
